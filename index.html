@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nick Drake · Pink Moon — Tributo</title>
+<meta name="description" content="Un tributo vivo a Nick Drake basado en la portada de Pink Moon (1972).">
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='42' fill='%23e88bb0'/></svg>">
+</head>
+<body>
+<canvas id="scene"></canvas>
+
+<header class="title">
+  <h1>NICK DRAKE</h1>
+  <h2>PINK MOON</h2>
+</header>
+
+<button id="tracksBtn" class="chip" type="button" aria-expanded="false">tracklist</button>
+
+<aside id="tracks" class="tracks" hidden>
+  <h3>Pink Moon <span>· 1972 · Island</span></h3>
+  <ol>
+    <li>Pink Moon</li>
+    <li>Place to Be</li>
+    <li>Road</li>
+    <li>Which Will</li>
+    <li>Horn</li>
+    <li>Things Behind the Sun</li>
+    <li>Know</li>
+    <li>Parasite</li>
+    <li>Free Ride</li>
+    <li>Harvest Breed</li>
+    <li>From the Morning</li>
+  </ol>
+</aside>
+
+<button id="playBtn" class="chip play" type="button" hidden>♪ escuchar el álbum</button>
+<div id="player" class="player" hidden></div>
+
+<footer class="credit">
+  Tributo a Nick Drake (1948–1974) · <em>Pink Moon</em>, Island Records 1972 · arte original de la portada: Michael Trevithick
+</footer>
+
+<script type="module" src="main.js"></script>
+</body>
+</html>

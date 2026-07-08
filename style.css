@@ -1,0 +1,139 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: #0b1626;
+  font-family: Georgia, "Times New Roman", serif;
+  color: #e9e2d6;
+}
+
+#scene {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* ---------- title, styled after the cover typography ---------- */
+.title {
+  position: fixed;
+  top: clamp(14px, 4vh, 44px);
+  left: 0;
+  right: 0;
+  text-align: center;
+  pointer-events: none;
+  user-select: none;
+  animation: settle 2.4s ease-out both;
+}
+
+.title h1 {
+  font-family: "Cooper Black", "Cooper Std", "Goudy Old Style", Georgia, serif;
+  font-weight: 900;
+  font-size: clamp(28px, 5.2vw, 58px);
+  letter-spacing: 0.06em;
+  color: #f08a2c;
+  text-shadow: 0 0 22px rgba(240, 138, 44, 0.35), 0 2px 4px rgba(0,0,0,0.5);
+}
+
+.title h2 {
+  font-family: "Cooper Black", "Cooper Std", "Goudy Old Style", Georgia, serif;
+  font-weight: 900;
+  font-size: clamp(16px, 2.9vw, 32px);
+  letter-spacing: 0.34em;
+  margin-top: 0.1em;
+  padding-left: 0.34em; /* compensate tracking */
+  color: #ef86b2;
+  text-shadow: 0 0 26px rgba(239, 134, 178, 0.45), 0 2px 4px rgba(0,0,0,0.5);
+  animation: moonbreath 7s ease-in-out infinite;
+}
+
+@keyframes moonbreath {
+  0%, 100% { text-shadow: 0 0 18px rgba(239,134,178,0.30), 0 2px 4px rgba(0,0,0,0.5); }
+  50%      { text-shadow: 0 0 34px rgba(239,134,178,0.65), 0 2px 4px rgba(0,0,0,0.5); }
+}
+
+@keyframes settle {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ---------- chips / buttons ---------- */
+.chip {
+  position: fixed;
+  bottom: 18px;
+  right: 18px;
+  z-index: 5;
+  font-family: inherit;
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  text-transform: lowercase;
+  color: #dfe7dd;
+  background: rgba(10, 26, 34, 0.55);
+  border: 1px solid rgba(223, 231, 221, 0.35);
+  border-radius: 999px;
+  padding: 8px 16px;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  transition: background 0.25s, border-color 0.25s;
+}
+.chip:hover { background: rgba(20, 52, 62, 0.75); border-color: rgba(239, 134, 178, 0.7); }
+
+.chip.play { right: auto; left: 18px; }
+
+/* ---------- tracklist panel ---------- */
+.tracks {
+  position: fixed;
+  bottom: 64px;
+  right: 18px;
+  z-index: 5;
+  min-width: 220px;
+  padding: 16px 20px;
+  background: rgba(8, 22, 30, 0.78);
+  border: 1px solid rgba(223, 231, 221, 0.25);
+  border-radius: 10px;
+  backdrop-filter: blur(6px);
+  animation: settle 0.5s ease-out both;
+}
+.tracks h3 { font-size: 15px; color: #ef86b2; font-weight: normal; margin-bottom: 10px; }
+.tracks h3 span { color: rgba(233, 226, 214, 0.55); font-size: 12px; }
+.tracks ol { list-style-position: inside; font-size: 13.5px; line-height: 1.85; color: #dfe7dd; }
+.tracks li::marker { color: rgba(240, 138, 44, 0.8); }
+
+/* ---------- youtube player (se activa más adelante) ---------- */
+.player {
+  position: fixed;
+  bottom: 64px;
+  left: 18px;
+  z-index: 5;
+  width: min(360px, calc(100vw - 36px));
+  aspect-ratio: 16 / 9;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(223, 231, 221, 0.25);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+}
+.player iframe { width: 100%; height: 100%; border: 0; display: block; }
+
+/* ---------- footer ---------- */
+.credit {
+  position: fixed;
+  bottom: 16px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 11.5px;
+  letter-spacing: 0.04em;
+  color: rgba(233, 226, 214, 0.55);
+  pointer-events: none;
+  padding: 0 120px;
+}
+
+@media (max-width: 700px) {
+  .credit { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .title h2 { animation: none; }
+}
