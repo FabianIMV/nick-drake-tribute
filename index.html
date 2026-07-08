@@ -3,10 +3,89 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Nick Drake · Pink Moon — Tributo</title>
-<meta name="description" content="Un tributo vivo a Nick Drake basado en la portada de Pink Moon (1972).">
+<title>Nick Drake · Pink Moon — Living Tribute</title>
+<meta name="description" content="A living, interactive tribute to Nick Drake built from the artwork of his 1972 album Pink Moon — drag the teacup, the leaf, the ghost face; listen to every track.">
+<meta name="keywords" content="Nick Drake, Pink Moon, Nick Drake tribute, Pink Moon album, Nick Drake 1972, Island Records, folk music, singer-songwriter, Pink Moon cover art, Michael Trevithick">
+<meta name="author" content="Fan tribute project">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://fabianimv.github.io/nick-drake-tribute/">
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Nick Drake · Pink Moon — Living Tribute">
+<meta property="og:description" content="A living, interactive tribute to Nick Drake built from the artwork of his 1972 album Pink Moon — drag the teacup, the leaf, the ghost face; listen to every track.">
+<meta property="og:url" content="https://fabianimv.github.io/nick-drake-tribute/">
+<meta property="og:image" content="https://fabianimv.github.io/nick-drake-tribute/assets/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:site_name" content="Nick Drake · Pink Moon Tribute">
+<meta property="og:locale" content="en_US">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Nick Drake · Pink Moon — Living Tribute">
+<meta name="twitter:description" content="A living, interactive tribute to Nick Drake built from the artwork of Pink Moon (1972). Drag the elements, listen to the album.">
+<meta name="twitter:image" content="https://fabianimv.github.io/nick-drake-tribute/assets/og-image.png">
+
+<meta name="theme-color" content="#0b1626">
 <link rel="stylesheet" href="style.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='42' fill='%23e88bb0'/></svg>">
+
+<!-- Structured data for search engines and AI/answer engines (GEO) -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "MusicAlbum",
+  "name": "Pink Moon",
+  "byArtist": {
+    "@type": "Person",
+    "name": "Nick Drake",
+    "birthDate": "1948-06-19",
+    "deathDate": "1974-11-25",
+    "sameAs": [
+      "https://en.wikipedia.org/wiki/Nick_Drake"
+    ]
+  },
+  "datePublished": "1972-02-25",
+  "recordLabel": {
+    "@type": "Organization",
+    "name": "Island Records"
+  },
+  "genre": ["Folk", "Singer-songwriter"],
+  "image": "https://fabianimv.github.io/nick-drake-tribute/assets/og-image.png",
+  "track": [
+    { "@type": "MusicRecording", "name": "Pink Moon", "position": 1 },
+    { "@type": "MusicRecording", "name": "Place to Be", "position": 2 },
+    { "@type": "MusicRecording", "name": "Road", "position": 3 },
+    { "@type": "MusicRecording", "name": "Which Will", "position": 4 },
+    { "@type": "MusicRecording", "name": "Horn", "position": 5 },
+    { "@type": "MusicRecording", "name": "Things Behind the Sun", "position": 6 },
+    { "@type": "MusicRecording", "name": "Know", "position": 7 },
+    { "@type": "MusicRecording", "name": "Parasite", "position": 8 },
+    { "@type": "MusicRecording", "name": "Free Ride", "position": 9 },
+    { "@type": "MusicRecording", "name": "Harvest Breed", "position": 10 },
+    { "@type": "MusicRecording", "name": "From the Morning", "position": 11 }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Nick Drake · Pink Moon — Living Tribute",
+  "description": "A fan-made, interactive tribute page to Nick Drake, animating the Pink Moon (1972) album artwork in the browser with Three.js.",
+  "url": "https://fabianimv.github.io/nick-drake-tribute/",
+  "about": {
+    "@type": "Person",
+    "name": "Nick Drake"
+  },
+  "isPartOf": {
+    "@type": "WebSite",
+    "name": "Nick Drake · Pink Moon Tribute",
+    "url": "https://fabianimv.github.io/nick-drake-tribute/"
+  }
+}
+</script>
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -15,6 +94,15 @@
   <h1>NICK DRAKE</h1>
   <h2>PINK MOON</h2>
 </header>
+
+<!-- Contenido semántico para lectores de pantalla, SEO y motores de IA -->
+<p class="sr-only">
+  A living, interactive tribute to English singer-songwriter Nick Drake (1948–1974),
+  built from the surreal artwork of his final studio album, <em>Pink Moon</em>,
+  released on Island Records in 1972. The cover's teacup, leaf, ghost face, postage
+  stamp, moon and shell are animated in the browser and can be dragged and moved
+  around. Listen to the full album below.
+</p>
 
 <button id="tracksBtn" class="chip" type="button" aria-expanded="false">tracklist</button>
 
@@ -35,7 +123,7 @@
   </ol>
 </aside>
 
-<button id="playBtn" class="chip play" type="button" hidden>♪ escuchar el álbum</button>
+<button id="playBtn" class="chip play" type="button">♪ escuchar el álbum</button>
 <div id="player" class="player" hidden></div>
 
 <footer class="credit">
