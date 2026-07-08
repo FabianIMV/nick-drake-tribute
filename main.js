@@ -4,6 +4,8 @@ import * as THREE from './vendor/three.module.js';
 //  Pink Moon — escena viva basada en la portada del disco.
 //  La portada fue separada en capas (fondo, luna, objetos)
 //  y aquí se recompone con profundidad, parallax y deriva.
+//  Los objetos se pueden arrastrar con el dedo o el mouse y
+//  siguen flotando solos alrededor de donde los dejes.
 // ============================================================
 
 // Más adelante: pega aquí el ID de un video/playlist de YouTube
@@ -11,20 +13,22 @@ import * as THREE from './vendor/three.module.js';
 const YOUTUBE_VIDEO_ID = '';
 
 const ART = 640; // la portada vive en un espacio de 640x640 (y hacia abajo)
+const BG_W = 1600, BG_H = 1280; // fondo extendido para pantallas anchas/altas
+
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-const MOTION = reduceMotion ? 0.25 : 1;
+const coarse = window.matchMedia('(pointer: coarse)').matches;
+// en pantallas táctiles el movimiento autónomo es más notorio
+const MOTION = reduceMotion ? 0.25 : (coarse ? 1.6 : 1);
 
 // offset (x,y desde arriba-izquierda de la portada), tamaño y profundidad z
-// el fondo es una versión extendida a 1600px para pantallas anchas
-const BG_W = 1600;
 const LAYERS = {
-  bg:     { url: 'assets/bg.png',     x: (ART - BG_W) / 2, y: 0, w: BG_W, h: ART, z: -60, scale: 1.04 },
-  sphere: { url: 'assets/sphere.png', x: 139, y: 107, w: 346, h: 438, z: -30 },
-  shell:  { url: 'assets/shell.png',  x: 0,   y: 486, w: 104, h: 88,  z: -16 },
-  leaf:   { url: 'assets/leaf.png',   x: 101, y: 61,  w: 173, h: 139, z: -12 },
-  stamp:  { url: 'assets/stamp.png',  x: 245, y: 197, w: 115, h: 158, z: -10 },
-  teacup: { url: 'assets/teacup.png', x: 60,  y: 184, w: 185, h: 164, z: -8  },
-  face:   { url: 'assets/face.png',   x: 412, y: 26,  w: 166, h: 286, z: -6  },
+  bg:     { url: 'assets/bg.png',     x: (ART - BG_W) / 2, y: (ART - BG_H) / 2, w: BG_W, h: BG_H, z: -60 },
+  sphere: { url: 'assets/sphere.png', x: 139, y: 107, w: 346, h: 438, z: -30, drag: true },
+  shell:  { url: 'assets/shell.png',  x: 0,   y: 486, w: 104, h: 88,  z: -16, drag: true },
+  leaf:   { url: 'assets/leaf.png',   x: 101, y: 61,  w: 173, h: 139, z: -12, drag: true },
+  stamp:  { url: 'assets/stamp.png',  x: 245, y: 197, w: 115, h: 158, z: -10, drag: true },
+  teacup: { url: 'assets/teacup.png', x: 60,  y: 184, w: 185, h: 164, z: -8,  drag: true },
+  face:   { url: 'assets/face.png',   x: 406, y: 18,  w: 196, h: 298, z: -6,  drag: true },
 };
 
 const canvas = document.getElementById('scene');
@@ -41,8 +45,8 @@ camera.position.z = 10;
 function resize() {
   const vw = window.innerWidth, vh = window.innerHeight;
   renderer.setSize(vw, vh);
-  // la composición completa cabe en alto; el fondo extendido cubre los lados
-  const s = Math.max(vh / ART, vw / BG_W);
+  // la composición completa cabe en pantalla; el fondo extendido cubre el resto
+  const s = Math.max(Math.min(vw, vh) / ART, vw / BG_W, vh / BG_H);
   const halfW = vw / s / 2, halfH = vh / s / 2;
   camera.left = -halfW; camera.right = halfW;
   camera.top = halfH; camera.bottom = -halfH;
@@ -57,19 +61,30 @@ const wy = (y) => ART / 2 - y;
 
 const loader = new THREE.TextureLoader();
 const sprites = {};
+const draggables = [];
 
 for (const [name, L] of Object.entries(LAYERS)) {
-  const tex = loader.load(L.url);
+  const tex = loader.load(L.url, (t) => {
+    // mapa de alpha para que el arrastre ignore las zonas transparentes
+    if (L.drag && t.image) {
+      const c = document.createElement('canvas');
+      c.width = t.image.width; c.height = t.image.height;
+      const g = c.getContext('2d', { willReadFrequently: true });
+      g.drawImage(t.image, 0, 0);
+      mesh.userData.alpha = g.getImageData(0, 0, c.width, c.height);
+    }
+  });
   tex.colorSpace = THREE.SRGBColorSpace;
   const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: name !== 'bg' });
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(L.w, L.h), mat);
   const cx = wx(L.x + L.w / 2), cy = wy(L.y + L.h / 2);
   mesh.position.set(cx, cy, L.z);
-  if (L.scale) mesh.scale.setScalar(L.scale);
-  mesh.userData = { cx, cy, z: L.z, baseScale: L.scale || 1 };
+  mesh.userData = { name, cx, cy, z: L.z };
   scene.add(mesh);
   sprites[name] = mesh;
+  if (L.drag) draggables.push(mesh);
 }
+draggables.sort((a, b) => b.userData.z - a.userData.z); // los de adelante primero
 
 // ---------- halo rosa de la luna ----------
 function radialTexture(inner, outer) {
@@ -140,20 +155,91 @@ function makePoints(n, area, size, color) {
   return mat;
 }
 
-const starsMat = makePoints(70, { x0: 10, x1: 630, y0: 8, y1: 210, z: -55 }, 2.6, '#cfe0ea');
-const firefliesMat = makePoints(22, { x0: 20, x1: 620, y0: 400, y1: 620, z: -14 }, 3.4, '#ffd9a0');
+const starsMat = makePoints(70, { x0: -440, x1: 1080, y0: -300, y1: 210, z: -55 }, 2.6, '#cfe0ea');
+const firefliesMat = makePoints(26, { x0: -200, x1: 840, y0: 400, y1: 900, z: -14 }, 3.4, '#ffd9a0');
 
-// ---------- parallax con mouse / giroscopio ----------
+// ---------- parallax: mouse, dedo o giroscopio; deriva sola si nadie toca ----------
 const pointer = { x: 0, y: 0 }, eased = { x: 0, y: 0 };
-window.addEventListener('pointermove', (e) => {
-  pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
-  pointer.y = (e.clientY / window.innerHeight) * 2 - 1;
-});
+let lastInput = -10;
+let dragging = null;
+
+function setPointer(clientX, clientY) {
+  pointer.x = (clientX / window.innerWidth) * 2 - 1;
+  pointer.y = (clientY / window.innerHeight) * 2 - 1;
+  lastInput = clock.getElapsedTime();
+}
+
 window.addEventListener('deviceorientation', (e) => {
-  if (e.gamma == null) return;
+  if (e.gamma == null || e.beta == null) return;
   pointer.x = THREE.MathUtils.clamp(e.gamma / 25, -1, 1);
   pointer.y = THREE.MathUtils.clamp((e.beta - 45) / 25, -1, 1);
+  lastInput = clock.getElapsedTime();
 });
+
+// ---------- arrastrar objetos ----------
+const raycaster = new THREE.Raycaster();
+const ndc = new THREE.Vector2();
+
+function pointerToWorld(clientX, clientY) {
+  const x = camera.left + (clientX / window.innerWidth) * (camera.right - camera.left);
+  const y = camera.top - (clientY / window.innerHeight) * (camera.top - camera.bottom);
+  return { x, y };
+}
+
+function pick(clientX, clientY) {
+  ndc.set((clientX / window.innerWidth) * 2 - 1, -(clientY / window.innerHeight) * 2 + 1);
+  raycaster.setFromCamera(ndc, camera);
+  for (const mesh of draggables) {
+    const hit = raycaster.intersectObject(mesh)[0];
+    if (!hit || !hit.uv) continue;
+    const a = mesh.userData.alpha;
+    if (a) {
+      const px = Math.floor(hit.uv.x * (a.width - 1));
+      const py = Math.floor((1 - hit.uv.y) * (a.height - 1));
+      if (a.data[(py * a.width + px) * 4 + 3] < 60) continue; // zona transparente
+    }
+    return mesh;
+  }
+  return null;
+}
+
+canvas.addEventListener('pointerdown', (e) => {
+  const mesh = pick(e.clientX, e.clientY);
+  setPointer(e.clientX, e.clientY);
+  if (!mesh) return;
+  const w = pointerToWorld(e.clientX, e.clientY);
+  dragging = {
+    mesh,
+    dx: w.x - mesh.userData.cx,
+    dy: w.y - mesh.userData.cy,
+  };
+  canvas.setPointerCapture(e.pointerId);
+  canvas.style.cursor = 'grabbing';
+});
+
+canvas.addEventListener('pointermove', (e) => {
+  if (dragging) {
+    const w = pointerToWorld(e.clientX, e.clientY);
+    // el objeto sigue al dedo con un poco de elasticidad y sigue respirando
+    dragging.mesh.userData.cx += (w.x - dragging.dx - dragging.mesh.userData.cx) * 0.35;
+    dragging.mesh.userData.cy += (w.y - dragging.dy - dragging.mesh.userData.cy) * 0.35;
+    lastInput = clock.getElapsedTime();
+  } else {
+    setPointer(e.clientX, e.clientY);
+    if (!coarse) canvas.style.cursor = pick(e.clientX, e.clientY) ? 'grab' : 'default';
+  }
+});
+
+function endDrag(e) {
+  if (!dragging) return;
+  dragging = null;
+  canvas.style.cursor = 'default';
+  if (e.pointerId != null && canvas.hasPointerCapture(e.pointerId)) {
+    canvas.releasePointerCapture(e.pointerId);
+  }
+}
+canvas.addEventListener('pointerup', endDrag);
+canvas.addEventListener('pointercancel', endDrag);
 
 // ---------- animación ----------
 const clock = new THREE.Clock();
@@ -163,8 +249,12 @@ function animate() {
   const t = clock.getElapsedTime();
   const M = MOTION;
 
-  eased.x += (pointer.x - eased.x) * 0.04;
-  eased.y += (pointer.y - eased.y) * 0.04;
+  // si nadie mueve el mouse ni toca la pantalla, la escena deriva sola
+  const idle = THREE.MathUtils.clamp((t - lastInput - 2.5) / 2, 0, 1);
+  const tx = THREE.MathUtils.lerp(pointer.x, 0.55 * Math.sin(t * 0.13), idle);
+  const ty = THREE.MathUtils.lerp(pointer.y, 0.4 * Math.sin(t * 0.09 + 1.7), idle);
+  eased.x += (tx - eased.x) * 0.035;
+  eased.y += (ty - eased.y) * 0.035;
 
   for (const mesh of Object.values(sprites)) {
     const { cx, cy, z } = mesh.userData;
