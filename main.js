@@ -8,17 +8,32 @@ import * as THREE from './vendor/three.module.js';
 //  siguen flotando solos alrededor de donde los dejes.
 // ============================================================
 
-// Más adelante: pega aquí el ID de un video/playlist de YouTube
-// con el álbum completo y aparecerá el botón "escuchar el álbum".
-const YOUTUBE_VIDEO_ID = '';
+// Cada canción de Pink Moon (1972), en orden, con su video de YouTube.
+const TRACKS = [
+  { title: 'Pink Moon',            id: 'ZgHdUeMHTwc' },
+  { title: 'Place to Be',          id: 'jvLtyyBRITo' },
+  { title: 'Road',                 id: 'jpk32L8Bb4c' },
+  { title: 'Which Will',           id: '1gYtqGgSTuo' },
+  { title: 'Horn',                 id: '9absJQoPCX8' },
+  { title: 'Things Behind the Sun',id: 'j14PgxHghjQ' },
+  { title: 'Know',                 id: 'LmqKVhtN50E' },
+  { title: 'Parasite',             id: 'qQlMBqdKWb4' },
+  { title: 'Free Ride',            id: 'y4CvAejW-jI' },
+  { title: 'Harvest Breed',        id: '7d87RHPn8kI' },
+  { title: 'From the Morning',     id: 'xPe5ZQx0OpQ' },
+];
 
 const ART = 640; // la portada vive en un espacio de 640x640 (y hacia abajo)
-const BG_W = 1600, BG_H = 1280; // fondo extendido para pantallas anchas/altas
+const BG_W = 1760, BG_H = 1440; // fondo extendido para pantallas anchas/altas
 
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const coarse = window.matchMedia('(pointer: coarse)').matches;
 // en pantallas táctiles el movimiento autónomo es más notorio
 const MOTION = reduceMotion ? 0.25 : (coarse ? 1.6 : 1);
+
+// altura de viewport visible real (evita saltos al aparecer/ocultarse
+// la barra de Safari en iOS, que dispara resize con valores intermedios)
+const vv = window.visualViewport;
 
 // offset (x,y desde arriba-izquierda de la portada), tamaño y profundidad z
 const LAYERS = {
@@ -43,16 +58,19 @@ const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 200);
 camera.position.z = 10;
 
 function resize() {
-  const vw = window.innerWidth, vh = window.innerHeight;
+  const vw = window.innerWidth;
+  const vh = vv ? vv.height : window.innerHeight;
   renderer.setSize(vw, vh);
-  // la composición completa cabe en pantalla; el fondo extendido cubre el resto
-  const s = Math.max(Math.min(vw, vh) / ART, vw / BG_W, vh / BG_H);
+  // "contain": la portada (640x640) siempre entra completa en pantalla,
+  // nunca se recorta; el fondo extendido rellena el resto a los costados.
+  const s = 0.94 * Math.min(vw, vh) / ART;
   const halfW = vw / s / 2, halfH = vh / s / 2;
   camera.left = -halfW; camera.right = halfW;
   camera.top = halfH; camera.bottom = -halfH;
   camera.updateProjectionMatrix();
 }
 window.addEventListener('resize', resize);
+if (vv) vv.addEventListener('resize', resize); // barra de Safari mostrándose/ocultándose
 resize();
 
 // coordenadas de portada (y hacia abajo) -> mundo (origen al centro, y hacia arriba)
@@ -207,6 +225,7 @@ canvas.addEventListener('pointerdown', (e) => {
   const mesh = pick(e.clientX, e.clientY);
   setPointer(e.clientX, e.clientY);
   if (!mesh) return;
+  e.preventDefault(); // evita que iOS interprete el toque como gesto/selección
   const w = pointerToWorld(e.clientX, e.clientY);
   dragging = {
     mesh,
@@ -215,10 +234,11 @@ canvas.addEventListener('pointerdown', (e) => {
   };
   canvas.setPointerCapture(e.pointerId);
   canvas.style.cursor = 'grabbing';
-});
+}, { passive: false });
 
 canvas.addEventListener('pointermove', (e) => {
   if (dragging) {
+    e.preventDefault();
     const w = pointerToWorld(e.clientX, e.clientY);
     // el objeto sigue al dedo con un poco de elasticidad y sigue respirando
     dragging.mesh.userData.cx += (w.x - dragging.dx - dragging.mesh.userData.cx) * 0.35;
@@ -228,7 +248,7 @@ canvas.addEventListener('pointermove', (e) => {
     setPointer(e.clientX, e.clientY);
     if (!coarse) canvas.style.cursor = pick(e.clientX, e.clientY) ? 'grab' : 'default';
   }
-});
+}, { passive: false });
 
 function endDrag(e) {
   if (!dragging) return;
@@ -240,6 +260,7 @@ function endDrag(e) {
 }
 canvas.addEventListener('pointerup', endDrag);
 canvas.addEventListener('pointercancel', endDrag);
+canvas.addEventListener('contextmenu', (e) => e.preventDefault()); // long-press en iOS
 
 // ---------- animación ----------
 const clock = new THREE.Clock();
@@ -314,20 +335,60 @@ tracksBtn.addEventListener('click', () => {
   tracksBtn.setAttribute('aria-expanded', String(open));
 });
 
-// ---------- youtube (se activa cuando haya un ID) ----------
+// ---------- youtube: reproducir el álbum completo o una canción ----------
+// Autoplay con sonido está bloqueado por los navegadores sin interacción
+// previa, así que arrancamos silenciados apenas se entra al sitio y el
+// mismo botón sirve para activar el sonido con un toque.
 const playBtn = document.getElementById('playBtn');
 const player = document.getElementById('player');
-if (YOUTUBE_VIDEO_ID) {
-  playBtn.hidden = false;
-  playBtn.addEventListener('click', () => {
-    if (player.hidden) {
-      player.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${YOUTUBE_VIDEO_ID}?autoplay=1" title="Pink Moon" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
-      player.hidden = false;
-      playBtn.textContent = '✕ cerrar';
-    } else {
-      player.hidden = true;
-      player.innerHTML = '';
-      playBtn.textContent = '♪ escuchar el álbum';
-    }
-  });
+const trackItems = document.querySelectorAll('#tracks li');
+let muted = true;
+
+function showPlayer(src, isMuted) {
+  const sep = src.includes('?') ? '&' : '?';
+  const url = `${src}${sep}autoplay=1&playsinline=1${isMuted ? '&mute=1' : ''}`;
+  player.innerHTML = `<iframe src="${url}" title="Pink Moon" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
+  player.hidden = false;
+  muted = isMuted;
+  playBtn.textContent = isMuted ? '🔊 activar sonido' : '✕ cerrar';
 }
+
+function closePlayer() {
+  player.hidden = true;
+  player.innerHTML = '';
+  playBtn.textContent = '♪ escuchar el álbum';
+  trackItems.forEach((li) => li.classList.remove('playing'));
+}
+
+function playAlbum(isMuted) {
+  const rest = TRACKS.slice(1).map((t) => t.id).join(',');
+  showPlayer(`https://www.youtube-nocookie.com/embed/${TRACKS[0].id}?playlist=${rest}`, isMuted);
+  trackItems.forEach((li, i) => li.classList.toggle('playing', i === 0));
+}
+
+function playTrack(i, isMuted = false) {
+  const track = TRACKS[i];
+  showPlayer(`https://www.youtube-nocookie.com/embed/${track.id}`, isMuted);
+  trackItems.forEach((li, j) => li.classList.toggle('playing', j === i));
+}
+
+playBtn.addEventListener('click', () => {
+  if (player.hidden) {
+    playAlbum(false); // gesto del usuario: se puede pedir con sonido
+  } else if (muted) {
+    // reintenta el mismo punto de la canción, ahora con sonido
+    const active = document.querySelector('#tracks li.playing');
+    const i = active ? [...trackItems].indexOf(active) : 0;
+    i === 0 ? playAlbum(false) : playTrack(i, false);
+  } else {
+    closePlayer();
+  }
+});
+
+trackItems.forEach((li, i) => {
+  li.addEventListener('click', () => playTrack(i, false)); // gesto del usuario: con sonido
+});
+
+// apenas se entra al sitio, arranca el álbum solo (silenciado, por las
+// políticas de autoplay de los navegadores) tanto en desktop como en móvil
+window.addEventListener('load', () => playAlbum(true));

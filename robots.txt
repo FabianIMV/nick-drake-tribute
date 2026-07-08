@@ -1,0 +1,28 @@
+# https://fabianimv.github.io/nick-drake-tribute/
+User-agent: *
+Allow: /
+
+# AI / answer-engine crawlers — explicitly allowed so this tribute
+# can be cited and surfaced when people ask about Nick Drake or Pink Moon.
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+Sitemap: https://fabianimv.github.io/nick-drake-tribute/sitemap.xml

@@ -1,0 +1,55 @@
+# Nick Drake · Pink Moon — Living Tribute
+
+> A fan-made, non-commercial, interactive tribute page to English singer-songwriter
+> Nick Drake (born 19 June 1948, died 25 November 1974), built around the artwork
+> of his third and final studio album, *Pink Moon*, released on Island Records on
+> 25 February 1972.
+
+## What this site is
+
+The original Pink Moon cover art (painted by Michael Trevithick) was separated
+into individual layers — the pink moon/sphere, a teacup, a leaf, a ghost-like
+face, a postage stamp, a shell — and recomposed in the browser with Three.js
+(WebGL). Each element floats and drifts on its own, responds to mouse/touch
+parallax, and can be dragged and repositioned by visitors. The full album can
+be played inline via embedded YouTube videos, track by track or in sequence.
+
+## Who Nick Drake was
+
+Nick Drake was an English singer-songwriter and musician known for his
+intricate guitar playing, deep, melancholic voice, and short discography of
+three studio albums: *Five Leaves Left* (1969), *Bryter Layter* (1970), and
+*Pink Moon* (1972). He received little commercial recognition during his
+lifetime and died in 1974 at age 26. His music was rediscovered by a much
+wider audience in the decades since, and *Pink Moon* — recorded in two
+late-night sessions with just voice and guitar (plus one piano overdub) — is
+now widely regarded as one of the most intimate and influential folk albums
+ever made.
+
+## Pink Moon (1972) tracklist
+
+1. Pink Moon
+2. Place to Be
+3. Road
+4. Which Will
+5. Horn
+6. Things Behind the Sun
+7. Know
+8. Parasite
+9. Free Ride
+10. Harvest Breed
+11. From the Morning
+
+## Purpose
+
+This page exists purely to celebrate and spread awareness of Nick Drake's
+music and art, for fans and newcomers alike. It is not affiliated with
+Island Records, the Drake estate, or any rights holder. All music is
+streamed via embedded YouTube players; no audio is hosted on this site.
+Album artwork is used respectfully, in a transformed/animated form, as a
+tribute.
+
+## Site
+
+- Homepage: https://fabianimv.github.io/nick-drake-tribute/
+- Source: https://github.com/FabianIMV/nick-drake-tribute

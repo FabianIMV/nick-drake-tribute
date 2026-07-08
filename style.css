@@ -1,8 +1,20 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
+}
+
 html, body {
   height: 100%;
   overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
   background: #0b1626;
   font-family: Georgia, "Times New Roman", serif;
   color: #e9e2d6;
@@ -14,7 +26,10 @@ html, body {
   width: 100%;
   height: 100%;
   display: block;
-  touch-action: none; /* permite arrastrar elementos con el dedo */
+  touch-action: none; /* permite arrastrar elementos con el dedo, sin scroll/zoom */
+  -webkit-touch-callout: none; /* evita el menú de "guardar imagen" al mantener presionado en iOS */
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 /* ---------- title, styled after the cover typography ---------- */
@@ -101,6 +116,16 @@ html, body {
 .tracks h3 span { color: rgba(233, 226, 214, 0.55); font-size: 12px; }
 .tracks ol { list-style-position: inside; font-size: 13.5px; line-height: 1.85; color: #dfe7dd; }
 .tracks li::marker { color: rgba(240, 138, 44, 0.8); }
+.tracks li {
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 1px 6px;
+  margin: 0 -6px;
+  transition: background 0.2s, color 0.2s;
+}
+.tracks li:hover { background: rgba(239, 134, 178, 0.12); color: #fff; }
+.tracks li.playing { color: #f08a2c; }
+.tracks li.playing::before { content: "♪ "; }
 
 /* ---------- youtube player (se activa más adelante) ---------- */
 .player {
