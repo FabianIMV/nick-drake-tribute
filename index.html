@@ -15,9 +15,10 @@
 <meta property="og:title" content="Nick Drake · Pink Moon — Living Tribute">
 <meta property="og:description" content="A living, interactive tribute to Nick Drake built from the artwork of his 1972 album Pink Moon — drag the teacup, the leaf, the ghost face; listen to every track.">
 <meta property="og:url" content="https://fabianimv.github.io/nick-drake-tribute/">
-<meta property="og:image" content="https://fabianimv.github.io/nick-drake-tribute/assets/og-image.png">
+<meta property="og:image" content="https://fabianimv.github.io/nick-drake-tribute/assets/og-image.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
+<meta property="og:image:type" content="image/jpeg">
 <meta property="og:site_name" content="Nick Drake · Pink Moon Tribute">
 <meta property="og:locale" content="en_US">
 
@@ -25,10 +26,13 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Nick Drake · Pink Moon — Living Tribute">
 <meta name="twitter:description" content="A living, interactive tribute to Nick Drake built from the artwork of Pink Moon (1972). Drag the elements, listen to the album.">
-<meta name="twitter:image" content="https://fabianimv.github.io/nick-drake-tribute/assets/og-image.png">
+<meta name="twitter:image" content="https://fabianimv.github.io/nick-drake-tribute/assets/og-image.jpg">
 
 <meta name="theme-color" content="#0b1626">
 <link rel="stylesheet" href="style.css">
+<link rel="preload" href="assets/bg.jpg" as="image" crossorigin="anonymous">
+<link rel="preconnect" href="https://www.youtube-nocookie.com">
+<link rel="preconnect" href="https://www.youtube.com">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='42' fill='%23e88bb0'/></svg>">
 
 <!-- Structured data for search engines and AI/answer engines (GEO) -->
@@ -52,7 +56,7 @@
     "name": "Island Records"
   },
   "genre": ["Folk", "Singer-songwriter"],
-  "image": "https://fabianimv.github.io/nick-drake-tribute/assets/og-image.png",
+  "image": "https://fabianimv.github.io/nick-drake-tribute/assets/og-image.jpg",
   "track": [
     { "@type": "MusicRecording", "name": "Pink Moon", "position": 1 },
     { "@type": "MusicRecording", "name": "Place to Be", "position": 2 },
@@ -104,27 +108,60 @@
   around. Listen to the full album below.
 </p>
 
-<button id="tracksBtn" class="chip" type="button" aria-expanded="false">tracklist</button>
+<p id="hint" class="hint" aria-hidden="true"></p>
 
-<aside id="tracks" class="tracks" hidden>
+<button id="tracksBtn" class="chip" type="button" aria-expanded="false" aria-controls="tracks">tracklist</button>
+
+<aside id="tracks" class="tracks" hidden aria-label="Tracklist de Pink Moon">
   <h3>Pink Moon <span>· 1972 · Island</span></h3>
   <ol>
-    <li>Pink Moon</li>
-    <li>Place to Be</li>
-    <li>Road</li>
-    <li>Which Will</li>
-    <li>Horn</li>
-    <li>Things Behind the Sun</li>
-    <li>Know</li>
-    <li>Parasite</li>
-    <li>Free Ride</li>
-    <li>Harvest Breed</li>
-    <li>From the Morning</li>
+    <li><button type="button" data-i="0"><span class="n">1</span><span class="t">Pink Moon</span><span class="d">2:06</span></button></li>
+    <li><button type="button" data-i="1"><span class="n">2</span><span class="t">Place to Be</span><span class="d">2:43</span></button></li>
+    <li><button type="button" data-i="2"><span class="n">3</span><span class="t">Road</span><span class="d">2:02</span></button></li>
+    <li><button type="button" data-i="3"><span class="n">4</span><span class="t">Which Will</span><span class="d">2:58</span></button></li>
+    <li><button type="button" data-i="4"><span class="n">5</span><span class="t">Horn</span><span class="d">1:23</span></button></li>
+    <li><button type="button" data-i="5"><span class="n">6</span><span class="t">Things Behind the Sun</span><span class="d">3:57</span></button></li>
+    <li><button type="button" data-i="6"><span class="n">7</span><span class="t">Know</span><span class="d">2:26</span></button></li>
+    <li><button type="button" data-i="7"><span class="n">8</span><span class="t">Parasite</span><span class="d">3:36</span></button></li>
+    <li><button type="button" data-i="8"><span class="n">9</span><span class="t">Free Ride</span><span class="d">3:06</span></button></li>
+    <li><button type="button" data-i="9"><span class="n">10</span><span class="t">Harvest Breed</span><span class="d">1:37</span></button></li>
+    <li><button type="button" data-i="10"><span class="n">11</span><span class="t">From the Morning</span><span class="d">2:30</span></button></li>
   </ol>
+  <p class="about">
+    Grabado en dos sesiones nocturnas de 1971, solo con voz y guitarra
+    (y un piano en la canción que da nombre al disco). Nick Drake murió en
+    1974, a los 26 años; su música encontró a su gente mucho después.
+  </p>
 </aside>
 
-<button id="playBtn" class="chip play" type="button">♪ escuchar el álbum</button>
-<div id="player" class="player" hidden></div>
+<button id="playBtn" class="chip play" type="button" hidden>♪ escuchar el álbum</button>
+
+<section id="player" class="player" hidden aria-label="Reproductor">
+  <div class="player-video"><div id="ytmount"></div></div>
+  <div class="player-body">
+    <p class="now" aria-live="polite"><span class="now-label">sonando</span> <span id="nowNum">1</span> · <span id="nowTitle">Pink Moon</span></p>
+    <div class="controls">
+      <button id="prevBtn" class="ctl" type="button" aria-label="Canción anterior">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg>
+      </button>
+      <button id="toggleBtn" class="ctl toggle" type="button" aria-label="Reproducir">
+        <svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15L20 12z"/></svg>
+        <svg class="i-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
+      </button>
+      <button id="nextBtn" class="ctl" type="button" aria-label="Siguiente canción">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg>
+      </button>
+      <button id="soundBtn" class="sound" type="button">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path class="spk" d="M3 9h4l5-4v14l-5-4H3z"/><path class="wav" d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>
+        <span class="long">activar sonido</span><span class="short">sonido</span>
+      </button>
+      <button id="closeBtn" class="ctl close" type="button" aria-label="Cerrar reproductor">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12l5.6 5.6-1.4 1.4-5.6-5.6L6.4 19 5 17.6l5.6-5.6L5 6.4z"/></svg>
+      </button>
+    </div>
+    <div class="bar"><span id="progress"></span></div>
+  </div>
+</section>
 
 <footer class="credit">
   Tributo a Nick Drake (1948–1974) · <em>Pink Moon</em>, Island Records 1972 · arte original de la portada: Michael Trevithick

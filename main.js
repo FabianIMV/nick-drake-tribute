@@ -5,7 +5,8 @@ import * as THREE from './vendor/three.module.js';
 //  La portada fue separada en capas (fondo, luna, objetos)
 //  y aquí se recompone con profundidad, parallax y deriva.
 //  Los objetos se pueden arrastrar con el dedo o el mouse y
-//  siguen flotando solos alrededor de donde los dejes.
+//  siguen flotando solos alrededor de donde los dejes; con
+//  doble clic / doble toque vuelven a su lugar en la portada.
 // ============================================================
 
 // Cada canción de Pink Moon (1972), en orden, con su video de YouTube.
@@ -24,7 +25,7 @@ const TRACKS = [
 ];
 
 const ART = 640; // la portada vive en un espacio de 640x640 (y hacia abajo)
-const BG_W = 1760, BG_H = 1440; // fondo extendido para pantallas anchas/altas
+const BG_W = 1760, BG_H = 1760; // fondo extendido para pantallas anchas/altas
 
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const coarse = window.matchMedia('(pointer: coarse)').matches;
@@ -37,13 +38,13 @@ const vv = window.visualViewport;
 
 // offset (x,y desde arriba-izquierda de la portada), tamaño y profundidad z
 const LAYERS = {
-  bg:     { url: 'assets/bg.png',     x: (ART - BG_W) / 2, y: (ART - BG_H) / 2, w: BG_W, h: BG_H, z: -60 },
-  sphere: { url: 'assets/sphere.png', x: 139, y: 107, w: 346, h: 438, z: -30, drag: true },
-  shell:  { url: 'assets/shell.png',  x: 0,   y: 486, w: 104, h: 88,  z: -16, drag: true },
-  leaf:   { url: 'assets/leaf.png',   x: 101, y: 61,  w: 173, h: 139, z: -12, drag: true },
-  stamp:  { url: 'assets/stamp.png',  x: 245, y: 197, w: 115, h: 158, z: -10, drag: true },
-  teacup: { url: 'assets/teacup.png', x: 60,  y: 184, w: 185, h: 164, z: -8,  drag: true },
-  face:   { url: 'assets/face.png',   x: 406, y: 18,  w: 196, h: 298, z: -6,  drag: true },
+  bg:     { url: 'assets/bg.jpg',     x: (ART - BG_W) / 2, y: (ART - BG_H) / 2, w: BG_W, h: BG_H, z: -60 },
+  sphere: { url: 'assets/sphere.png', x: 143, y: 110, w: 339, h: 432, z: -30, drag: true },
+  shell:  { url: 'assets/shell.png',  x: 15,  y: 496, w: 68,  h: 62,  z: -16, drag: true, shadow: true },
+  leaf:   { url: 'assets/leaf.png',   x: 117, y: 85,  w: 136, h: 105, z: -12, drag: true, shadow: true },
+  stamp:  { url: 'assets/stamp.png',  x: 259, y: 215, w: 84,  h: 116, z: -10, drag: true, shadow: true },
+  teacup: { url: 'assets/teacup.png', x: 87,  y: 206, w: 148, h: 126, z: -8,  drag: true, shadow: true },
+  face:   { url: 'assets/face.png',   x: 421, y: 51,  w: 162, h: 218, z: -6,  drag: true, shadow: true },
 };
 
 const canvas = document.getElementById('scene');
@@ -77,9 +78,50 @@ resize();
 const wx = (x) => x - ART / 2;
 const wy = (y) => ART / 2 - y;
 
-const loader = new THREE.TextureLoader();
+// la escena aparece suavemente cuando todas las capas están listas
+const manager = new THREE.LoadingManager();
+let revealed = false;
+function reveal() {
+  if (revealed) return;
+  revealed = true;
+  canvas.classList.add('ready');
+  showHint();
+}
+manager.onLoad = reveal;
+setTimeout(reveal, 5000); // por si alguna textura tarda demasiado
+
+const loader = new THREE.TextureLoader(manager);
 const sprites = {};
 const draggables = [];
+const shadows = [];
+
+// sombra suave a partir de la silueta del objeto: se dibuja en negro a
+// baja resolución y se vuelve a escalar, lo que la difumina en cualquier
+// navegador (ctx.filter no está en todos lados)
+const SHADOW_PAD = 14;
+function shadowTexture(img) {
+  const w = img.width + SHADOW_PAD * 2, h = img.height + SHADOW_PAD * 2;
+  const sil = document.createElement('canvas');
+  sil.width = w; sil.height = h;
+  const g = sil.getContext('2d');
+  g.drawImage(img, SHADOW_PAD, SHADOW_PAD);
+  g.globalCompositeOperation = 'source-in';
+  g.fillStyle = '#06080c';
+  g.fillRect(0, 0, w, h);
+  const small = document.createElement('canvas');
+  small.width = Math.max(4, Math.round(w / 6)); small.height = Math.max(4, Math.round(h / 6));
+  const gs = small.getContext('2d');
+  gs.imageSmoothingQuality = 'high';
+  gs.drawImage(sil, 0, 0, small.width, small.height);
+  const out = document.createElement('canvas');
+  out.width = w; out.height = h;
+  const go = out.getContext('2d');
+  go.imageSmoothingQuality = 'high';
+  go.drawImage(small, 0, 0, w, h);
+  const t = new THREE.CanvasTexture(out);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
 
 for (const [name, L] of Object.entries(LAYERS)) {
   const tex = loader.load(L.url, (t) => {
@@ -91,16 +133,32 @@ for (const [name, L] of Object.entries(LAYERS)) {
       g.drawImage(t.image, 0, 0);
       mesh.userData.alpha = g.getImageData(0, 0, c.width, c.height);
     }
+    if (L.shadow && t.image) {
+      mesh.userData.shadow.material.map = shadowTexture(t.image);
+      mesh.userData.shadow.material.needsUpdate = true;
+      mesh.userData.shadow.visible = true;
+    }
   });
   tex.colorSpace = THREE.SRGBColorSpace;
   const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: name !== 'bg' });
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(L.w, L.h), mat);
   const cx = wx(L.x + L.w / 2), cy = wy(L.y + L.h / 2);
   mesh.position.set(cx, cy, L.z);
-  mesh.userData = { name, cx, cy, z: L.z };
+  mesh.userData = { name, cx, cy, z: L.z, homeX: cx, homeY: cy, lift: 0, returning: false };
   scene.add(mesh);
   sprites[name] = mesh;
   if (L.drag) draggables.push(mesh);
+  if (L.shadow) {
+    const sh = new THREE.Mesh(
+      new THREE.PlaneGeometry(L.w + SHADOW_PAD * 2, L.h + SHADOW_PAD * 2),
+      new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.4, depthWrite: false })
+    );
+    sh.visible = false;
+    sh.position.set(cx, cy, L.z - 0.5);
+    scene.add(sh);
+    mesh.userData.shadow = sh;
+    shadows.push(mesh);
+  }
 }
 draggables.sort((a, b) => b.userData.z - a.userData.z); // los de adelante primero
 
@@ -176,6 +234,45 @@ function makePoints(n, area, size, color) {
 const starsMat = makePoints(70, { x0: -440, x1: 1080, y0: -300, y1: 210, z: -55 }, 2.6, '#cfe0ea');
 const firefliesMat = makePoints(26, { x0: -200, x1: 840, y0: 400, y1: 900, z: -14 }, 3.4, '#ffd9a0');
 
+// ---------- una estrella fugaz, de vez en cuando ----------
+function streakTexture() {
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 16;
+  const g = c.getContext('2d');
+  const grad = g.createLinearGradient(0, 0, 256, 0);
+  grad.addColorStop(0, 'rgba(255,255,255,0)');
+  grad.addColorStop(0.85, 'rgba(236,244,255,0.75)');
+  grad.addColorStop(1, 'rgba(255,255,255,1)');
+  g.fillStyle = grad;
+  g.beginPath();
+  g.moveTo(0, 8); g.lineTo(250, 5); g.arc(250, 8, 3, -Math.PI / 2, Math.PI / 2); g.lineTo(0, 8);
+  g.fill();
+  return new THREE.CanvasTexture(c);
+}
+const meteor = new THREE.Mesh(
+  new THREE.PlaneGeometry(130, 5),
+  new THREE.MeshBasicMaterial({
+    map: streakTexture(), transparent: true, opacity: 0,
+    blending: THREE.AdditiveBlending, depthWrite: false,
+  })
+);
+meteor.position.z = -50;
+scene.add(meteor);
+let meteorStart = -1, nextMeteor = 9 + Math.random() * 8;
+const meteorPath = { x: 0, y: 0, dx: 0, dy: 0 };
+
+function launchMeteor(t) {
+  meteorStart = t;
+  nextMeteor = t + 14 + Math.random() * 18;
+  const dir = Math.random() < 0.5 ? -1 : 1;
+  const ang = (0.32 + Math.random() * 0.25) * dir; // cae en diagonal
+  meteorPath.x = wx(100 + Math.random() * 440) - dir * 120;
+  meteorPath.y = wy(-40 + Math.random() * 160);
+  meteorPath.dx = Math.cos(ang) * dir * 520;
+  meteorPath.dy = -Math.abs(Math.sin(ang)) * 520;
+  meteor.rotation.z = Math.atan2(meteorPath.dy, meteorPath.dx);
+}
+
 // ---------- parallax: mouse, dedo o giroscopio; deriva sola si nadie toca ----------
 const pointer = { x: 0, y: 0 }, eased = { x: 0, y: 0 };
 let lastInput = -10;
@@ -221,12 +318,26 @@ function pick(clientX, clientY) {
   return null;
 }
 
+// doble clic / doble toque: el objeto vuelve a su lugar en la portada
+function sendHome(mesh) {
+  mesh.userData.returning = true;
+}
+let lastTap = { mesh: null, time: 0 };
+
 canvas.addEventListener('pointerdown', (e) => {
   const mesh = pick(e.clientX, e.clientY);
   setPointer(e.clientX, e.clientY);
   if (!mesh) return;
   e.preventDefault(); // evita que iOS interprete el toque como gesto/selección
+  const now = performance.now();
+  if (lastTap.mesh === mesh && now - lastTap.time < 350) {
+    lastTap.mesh = null;
+    sendHome(mesh);
+    return;
+  }
+  lastTap = { mesh, time: now };
   const w = pointerToWorld(e.clientX, e.clientY);
+  mesh.userData.returning = false;
   dragging = {
     mesh,
     dx: w.x - mesh.userData.cx,
@@ -234,6 +345,7 @@ canvas.addEventListener('pointerdown', (e) => {
   };
   canvas.setPointerCapture(e.pointerId);
   canvas.style.cursor = 'grabbing';
+  hideHint();
 }, { passive: false });
 
 canvas.addEventListener('pointermove', (e) => {
@@ -262,6 +374,25 @@ canvas.addEventListener('pointerup', endDrag);
 canvas.addEventListener('pointercancel', endDrag);
 canvas.addEventListener('contextmenu', (e) => e.preventDefault()); // long-press en iOS
 
+// ---------- pista: cómo jugar con la portada ----------
+const hint = document.getElementById('hint');
+let hintTimer = 0;
+function showHint() {
+  if (!hint) return;
+  hint.textContent = coarse
+    ? 'arrastra los objetos · doble toque para devolverlos'
+    : 'arrastra los objetos · doble clic para devolverlos';
+  hintTimer = setTimeout(() => {
+    hint.classList.add('show');
+    hintTimer = setTimeout(hideHint, 6500);
+  }, 1800);
+}
+function hideHint() {
+  if (!hint) return;
+  clearTimeout(hintTimer);
+  hint.classList.remove('show');
+}
+
 // ---------- animación ----------
 const clock = new THREE.Clock();
 
@@ -278,17 +409,27 @@ function animate() {
   eased.y += (ty - eased.y) * 0.035;
 
   for (const mesh of Object.values(sprites)) {
-    const { cx, cy, z } = mesh.userData;
+    const u = mesh.userData;
+    if (u.returning) {
+      u.cx += (u.homeX - u.cx) * 0.07;
+      u.cy += (u.homeY - u.cy) * 0.07;
+      if (Math.abs(u.homeX - u.cx) + Math.abs(u.homeY - u.cy) < 0.5) {
+        u.cx = u.homeX; u.cy = u.homeY; u.returning = false;
+      }
+    }
+    // al tomarlo, el objeto se "levanta" un poco de la portada
+    u.lift += ((dragging && dragging.mesh === mesh ? 1 : 0) - u.lift) * 0.15;
     // capas más cercanas (z mayor) se desplazan más
-    const depth = (z + 60) / 60; // 0 fondo … ~0.9 frente
-    mesh.position.x = cx - eased.x * (4 + depth * 22) * M;
-    mesh.position.y = cy + eased.y * (3 + depth * 16) * M;
+    const depth = (u.z + 60) / 60; // 0 fondo … ~0.9 frente
+    mesh.position.x = u.cx - eased.x * (4 + depth * 22) * M;
+    mesh.position.y = u.cy + eased.y * (3 + depth * 16) * M;
+    mesh.scale.setScalar(1 + 0.05 * u.lift);
   }
 
   const S = sprites;
   // la luna respira
   const sph = S.sphere;
-  sph.scale.setScalar(1 + 0.007 * Math.sin(t * 0.5) * M);
+  sph.scale.setScalar((1 + 0.007 * Math.sin(t * 0.5) * M) * (1 + 0.03 * sph.userData.lift));
   sph.rotation.z = 0.012 * Math.sin(t * 0.23) * M;
   sph.position.y += 3.5 * Math.sin(t * 0.4) * M;
 
@@ -313,11 +454,36 @@ function animate() {
   // el caracol apenas se mueve
   S.shell.position.y += 1.6 * Math.sin(t * 0.5 + 2.6) * M;
 
+  // sombras: siguen a su objeto, más lejos y más difusas cuando se levanta
+  for (const mesh of shadows) {
+    const sh = mesh.userData.shadow, lift = mesh.userData.lift;
+    sh.position.x = mesh.position.x + 5 + 9 * lift;
+    sh.position.y = mesh.position.y - 7 - 12 * lift;
+    sh.rotation.z = mesh.rotation.z;
+    sh.scale.setScalar(mesh.scale.x * (1 + 0.06 * lift));
+    sh.material.opacity = 0.42 - 0.12 * lift;
+  }
+
   // halo pulsante
   glow.material.opacity = 0.55 + 0.3 * Math.sin(t * 0.4);
   glow.scale.setScalar(1 + 0.04 * Math.sin(t * 0.33));
   glow.position.x = sph.position.x;
   glow.position.y = sph.position.y + 25;
+
+  // estrella fugaz
+  if (!reduceMotion && t > nextMeteor) launchMeteor(t);
+  if (meteorStart >= 0) {
+    const p = (t - meteorStart) / 1.1;
+    if (p >= 1) {
+      meteorStart = -1;
+      meteor.material.opacity = 0;
+    } else {
+      const e = 1 - (1 - p) * (1 - p);
+      meteor.position.x = meteorPath.x + meteorPath.dx * e;
+      meteor.position.y = meteorPath.y + meteorPath.dy * e;
+      meteor.material.opacity = Math.sin(Math.PI * p) * 0.9;
+    }
+  }
 
   starsMat.uniforms.uTime.value = t;
   firefliesMat.uniforms.uTime.value = t * 0.6;
@@ -329,66 +495,198 @@ animate();
 // ---------- tracklist ----------
 const tracksBtn = document.getElementById('tracksBtn');
 const tracks = document.getElementById('tracks');
-tracksBtn.addEventListener('click', () => {
-  const open = tracks.hidden;
+function setTracks(open) {
   tracks.hidden = !open;
   tracksBtn.setAttribute('aria-expanded', String(open));
+}
+tracksBtn.addEventListener('click', () => setTracks(tracks.hidden));
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !tracks.hidden) { setTracks(false); tracksBtn.focus(); }
 });
+canvas.addEventListener('pointerdown', () => { if (!tracks.hidden) setTracks(false); });
 
-// ---------- youtube: reproducir el álbum completo o una canción ----------
+// ---------- reproductor de YouTube ----------
 // Autoplay con sonido está bloqueado por los navegadores sin interacción
-// previa, así que arrancamos silenciados apenas se entra al sitio y el
-// mismo botón sirve para activar el sonido con un toque.
+// previa, así que el álbum arranca silenciado apenas se entra al sitio y
+// "activar sonido" lo destapa sin reiniciar la canción. Con la API de
+// YouTube sabemos qué canción suena y la tracklist la sigue.
 const playBtn = document.getElementById('playBtn');
 const player = document.getElementById('player');
-const trackItems = document.querySelectorAll('#tracks li');
+const trackBtns = [...document.querySelectorAll('#tracks button[data-i]')];
+const nowNum = document.getElementById('nowNum');
+const nowTitle = document.getElementById('nowTitle');
+const soundBtn = document.getElementById('soundBtn');
+const toggleBtn = document.getElementById('toggleBtn');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const closeBtn = document.getElementById('closeBtn');
+const progress = document.getElementById('progress');
+const IDS = TRACKS.map((t) => t.id);
+
+let yt = null;          // YT.Player
+let ytReady = false;    // la API ya respondió y sus métodos existen
+let ytFailed = false;   // si la API no carga (bloqueadores, red), iframe simple
+let closed = false;
+let current = 0;
 let muted = true;
+let playing = false;
 
-function showPlayer(src, isMuted) {
-  const sep = src.includes('?') ? '&' : '?';
-  const url = `${src}${sep}autoplay=1&playsinline=1${isMuted ? '&mute=1' : ''}`;
-  player.innerHTML = `<iframe src="${url}" title="Pink Moon" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
+function setCurrent(i) {
+  if (i == null || i < 0 || i >= TRACKS.length) return;
+  current = i;
+  nowNum.textContent = String(i + 1);
+  nowTitle.textContent = TRACKS[i].title;
+  trackBtns.forEach((b, j) => {
+    b.parentElement.classList.toggle('playing', j === i);
+    if (j === i) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current');
+  });
+}
+
+function setMuted(m) {
+  muted = m;
+  soundBtn.hidden = !m;
+}
+
+function setPlaying(p) {
+  playing = p;
+  toggleBtn.classList.toggle('is-playing', p);
+  toggleBtn.setAttribute('aria-label', p ? 'Pausar' : 'Reproducir');
+}
+
+function openPlayer() {
+  closed = false;
   player.hidden = false;
-  muted = isMuted;
-  playBtn.textContent = isMuted ? '🔊 activar sonido' : '✕ cerrar';
+  playBtn.hidden = true;
 }
 
-function closePlayer() {
-  player.hidden = true;
-  player.innerHTML = '';
-  playBtn.textContent = '♪ escuchar el álbum';
-  trackItems.forEach((li) => li.classList.remove('playing'));
+let ytApi = null;
+function loadYouTubeApi() {
+  if (ytApi) return ytApi;
+  ytApi = new Promise((resolve, reject) => {
+    if (window.YT && window.YT.Player) return resolve(window.YT);
+    const prev = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => { if (prev) prev(); resolve(window.YT); };
+    const s = document.createElement('script');
+    s.src = 'https://www.youtube.com/iframe_api';
+    s.async = true;
+    s.onerror = reject;
+    document.head.appendChild(s);
+    setTimeout(() => reject(new Error('timeout')), 8000);
+  });
+  return ytApi;
 }
 
-function playAlbum(isMuted) {
-  const rest = TRACKS.slice(1).map((t) => t.id).join(',');
-  showPlayer(`https://www.youtube-nocookie.com/embed/${TRACKS[0].id}?playlist=${rest}`, isMuted);
-  trackItems.forEach((li, i) => li.classList.toggle('playing', i === 0));
+// respaldo sin API: un iframe con la lista desde la canción i
+function fallbackPlay(i, isMuted) {
+  ytFailed = true;
+  const rest = IDS.slice(i + 1).join(',');
+  const params = `autoplay=1&playsinline=1&rel=0${rest ? `&playlist=${rest}` : ''}${isMuted ? '&mute=1' : ''}`;
+  document.getElementById('ytmount').outerHTML =
+    `<iframe id="ytmount" src="https://www.youtube-nocookie.com/embed/${IDS[i]}?${params}" title="Pink Moon — ${TRACKS[i].title}" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
+  setCurrent(i);
+  setMuted(isMuted);
+  setPlaying(true);
+  player.classList.add('basic'); // sin API no hay pausa/progreso fiables
 }
 
-function playTrack(i, isMuted = false) {
-  const track = TRACKS[i];
-  showPlayer(`https://www.youtube-nocookie.com/embed/${track.id}`, isMuted);
-  trackItems.forEach((li, j) => li.classList.toggle('playing', j === i));
+function applyVolume() {
+  if (muted) yt.mute(); else { yt.unMute(); yt.setVolume(100); }
 }
 
-playBtn.addEventListener('click', () => {
-  if (player.hidden) {
-    playAlbum(false); // gesto del usuario: se puede pedir con sonido
-  } else if (muted) {
-    // reintenta el mismo punto de la canción, ahora con sonido
-    const active = document.querySelector('#tracks li.playing');
-    const i = active ? [...trackItems].indexOf(active) : 0;
-    i === 0 ? playAlbum(false) : playTrack(i, false);
-  } else {
-    closePlayer();
+function play(i, isMuted) {
+  openPlayer();
+  setCurrent(i);
+  setMuted(isMuted);
+  if (ytFailed) return fallbackPlay(i, isMuted);
+  if (ytReady) {
+    applyVolume();
+    yt.loadPlaylist(IDS, i);
+    return;
   }
+  if (yt) return; // todavía cargando: onReady usará current/muted
+  loadYouTubeApi().then((YT) => {
+    if (yt || ytFailed) return;
+    yt = new YT.Player('ytmount', {
+      host: 'https://www.youtube-nocookie.com',
+      width: '100%', height: '100%',
+      playerVars: { autoplay: 1, playsinline: 1, rel: 0, modestbranding: 1, origin: location.origin },
+      events: {
+        onReady: () => {
+          if (ytFailed) return;
+          ytReady = true;
+          const iframe = yt.getIframe();
+          if (iframe) iframe.title = 'Pink Moon — reproductor';
+          if (closed) return;
+          applyVolume();
+          yt.loadPlaylist(IDS, current);
+        },
+        onStateChange: (e) => {
+          if (ytFailed) return;
+          const idx = yt.getPlaylistIndex();
+          if (idx >= 0 && !closed) setCurrent(idx);
+          setPlaying(e.data === YT.PlayerState.PLAYING || e.data === YT.PlayerState.BUFFERING);
+          if (e.data === YT.PlayerState.PLAYING) setMuted(yt.isMuted());
+        },
+        onError: () => { if (current < IDS.length - 1) yt.nextVideo(); },
+      },
+    });
+    // si el reproductor no responde a tiempo, pasamos al iframe simple
+    setTimeout(() => { if (!ytReady && !closed) fallbackPlay(current, muted); }, 10000);
+  }).catch(() => { if (!closed) fallbackPlay(current, muted); });
+}
+
+function unmute() {
+  if (!ytReady || ytFailed) return play(current, false);
+  setMuted(false);
+  applyVolume();
+  if (!playing) yt.playVideo();
+}
+
+function step(delta) {
+  const i = Math.min(IDS.length - 1, Math.max(0, current + delta));
+  if (ytReady && !ytFailed) {
+    if (muted) { setMuted(false); applyVolume(); }
+    if (delta > 0) yt.nextVideo(); else yt.previousVideo();
+    setCurrent(i);
+  } else {
+    play(i, false);
+  }
+}
+
+playBtn.addEventListener('click', () => play(0, false)); // gesto del usuario: con sonido
+soundBtn.addEventListener('click', unmute);
+toggleBtn.addEventListener('click', () => {
+  if (!ytReady || ytFailed) return play(current, false);
+  if (playing) yt.pauseVideo();
+  else if (muted) unmute();
+  else yt.playVideo();
+});
+prevBtn.addEventListener('click', () => step(-1));
+nextBtn.addEventListener('click', () => step(1));
+closeBtn.addEventListener('click', () => {
+  closed = true;
+  try {
+    if (ytReady && !ytFailed) yt.stopVideo();
+    else if (ytFailed) document.getElementById('ytmount').src = 'about:blank';
+  } catch (_) { /* el reproductor se cierra igual */ }
+  player.hidden = true;
+  playBtn.hidden = false;
+  setPlaying(false);
+  trackBtns.forEach((b) => { b.parentElement.classList.remove('playing'); b.removeAttribute('aria-current'); });
+  playBtn.focus();
 });
 
-trackItems.forEach((li, i) => {
-  li.addEventListener('click', () => playTrack(i, false)); // gesto del usuario: con sonido
+trackBtns.forEach((b) => {
+  b.addEventListener('click', () => play(Number(b.dataset.i), false)); // gesto del usuario: con sonido
 });
+
+// barra de progreso de la canción actual
+setInterval(() => {
+  if (!ytReady || ytFailed || player.hidden) return;
+  const d = yt.getDuration(), c = yt.getCurrentTime();
+  progress.style.transform = `scaleX(${d > 0 ? Math.min(c / d, 1) : 0})`;
+}, 500);
 
 // apenas se entra al sitio, arranca el álbum solo (silenciado, por las
 // políticas de autoplay de los navegadores) tanto en desktop como en móvil
-window.addEventListener('load', () => playAlbum(true));
+window.addEventListener('load', () => play(0, true));
