@@ -62,20 +62,30 @@ indexarlo y citarlo correctamente:
 
 ## Estructura
 
-- `index.html` / `style.css` — título, tracklist, créditos, SEO
+- `index.html` / `style.css` — título, tracklist, reproductor, créditos, SEO
 - `main.js` — la escena Three.js (capas, animaciones, parallax, arrastre, reproductor)
 - `assets/` — las capas recortadas de la portada (PNG con transparencia),
   el fondo reconstruido y extendido (`bg.jpg`, 1760×1760) y la og-image
 
 ### Sobre los recortes
 
-Las capas se recortaron desde una reconstrucción de la portada completa:
+Las capas se recortaron a partir de la portada original (640×640), que es
+la fuente de todo lo que se ve cuando los objetos están en su lugar:
 la estampilla incluye la llama entera del cohete (antes quedaba partida con
 la luna), la taza tiene el asa hueca, la hoja no arrastra halo oscuro, y lo
 que quedaba escondido detrás de cada objeto (en la luna y en el cielo) se
 rellenó con un degradado continuo con grano de pintura, para que al mover
-los objetos no aparezcan manchas. El fondo se extiende hacia los lados con
-acantilados de silueta natural en lugar de franjas estiradas.
+los objetos no aparezcan manchas. La luna lleva consigo su extremidad con
+la lava (y sus gotas), la pierna con el zapato y la cuerda entera hasta donde
+entra al agua; el charco de colores y las ondas quedan en el fondo. El fondo
+se extiende hacia los lados con acantilados de silueta natural en lugar de
+franjas estiradas.
+
+### Tipografía
+
+El título usa TeX Gyre Adventor (clon libre de ITC Avant Garde, licencia GUST,
+ver `assets/fonts/GUST-FONT-LICENSE.txt`) con los colores de la portada, y en
+pantallas horizontales se dibuja exactamente donde está en el disco.
 - `vendor/three.module.js` — Three.js r160 vendoreado (sin CDN)
 - `robots.txt`, `sitemap.xml`, `llms.txt` — SEO/GEO
 

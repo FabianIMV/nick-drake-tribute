@@ -57,42 +57,67 @@ html, body {
 }
 .hint.show { opacity: 1; transform: translate(-50%, 0); }
 
-/* ---------- title, styled after the cover typography ---------- */
+/* ---------- título: la tipografía y el lugar exactos de la portada ---------- */
+/* TeX Gyre Adventor: clon libre de ITC Avant Garde (GUST Font License) */
+@font-face {
+  font-family: "Adventor";
+  src: url("assets/fonts/texgyreadventor-bold.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Adventor";
+  src: url("assets/fonts/texgyreadventor-regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+
+/* --u = un pixel de la portada (640x640) en pantalla, --cover-top = dónde
+   empieza la portada; ambos los pone main.js. En la portada, NICK DRAKE mide
+   18px de alto de mayúscula y está centrado en x≈311, y PINK MOON va debajo. */
 .title {
   position: fixed;
-  top: clamp(14px, 4vh, 44px);
-  left: 0;
-  right: 0;
+  top: calc(var(--cover-top, 0px) + 22.2 * var(--u, 1px));
+  left: calc(50% - 8.5 * var(--u, 1px));
+  translate: -50% 0; /* no usa transform: la animación settle lo ocupa */
   text-align: center;
+  white-space: nowrap;
   pointer-events: none;
   user-select: none;
+  font-family: "Adventor", "Century Gothic", "Avant Garde", "Futura", sans-serif;
+  line-height: 1;
   animation: settle 2.4s ease-out both;
 }
 
 .title h1 {
-  font-family: "Cooper Black", "Cooper Std", "Goudy Old Style", Georgia, serif;
-  font-weight: 900;
-  font-size: clamp(28px, 5.2vw, 58px);
-  letter-spacing: 0.06em;
-  color: #f08a2c;
-  text-shadow: 0 0 22px rgba(240, 138, 44, 0.35), 0 2px 4px rgba(0,0,0,0.5);
+  font-weight: 700;
+  font-size: max(15px, calc(24.4 * var(--u, 1px)));
+  letter-spacing: -0.012em;
+  color: #f16d28;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
 }
 
 .title h2 {
-  font-family: "Cooper Black", "Cooper Std", "Goudy Old Style", Georgia, serif;
-  font-weight: 900;
-  font-size: clamp(16px, 2.9vw, 32px);
-  letter-spacing: 0.34em;
-  margin-top: 0.1em;
-  padding-left: 0.34em; /* compensate tracking */
-  color: #ef86b2;
-  text-shadow: 0 0 26px rgba(239, 134, 178, 0.45), 0 2px 4px rgba(0,0,0,0.5);
+  font-weight: 400;
+  font-size: max(12.5px, calc(20.3 * var(--u, 1px)));
+  letter-spacing: -0.08em;
+  word-spacing: 0.02em;
+  margin-top: calc(-5 * var(--u, 1px));
+  color: #d9cd21;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
   animation: moonbreath 7s ease-in-out infinite;
 }
 
 @keyframes moonbreath {
-  0%, 100% { text-shadow: 0 0 18px rgba(239,134,178,0.30), 0 2px 4px rgba(0,0,0,0.5); }
-  50%      { text-shadow: 0 0 34px rgba(239,134,178,0.65), 0 2px 4px rgba(0,0,0,0.5); }
+  0%, 100% { text-shadow: 0 1px 3px rgba(0,0,0,0.35), 0 0 10px rgba(217,205,33,0.10); }
+  50%      { text-shadow: 0 1px 3px rgba(0,0,0,0.35), 0 0 18px rgba(217,205,33,0.35); }
+}
+
+/* en vertical sobra cielo arriba: el título va en lo alto y más grande */
+@media (max-aspect-ratio: 9/10) {
+  .title { top: clamp(18px, 5vh, 56px); left: 50%; }
+  .title h1 { font-size: clamp(30px, 9vw, 46px); }
+  .title h2 { font-size: clamp(25px, 7.5vw, 38px); margin-top: 0.06em; }
 }
 
 @keyframes settle {

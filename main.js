@@ -39,7 +39,7 @@ const vv = window.visualViewport;
 // offset (x,y desde arriba-izquierda de la portada), tamaño y profundidad z
 const LAYERS = {
   bg:     { url: 'assets/bg.jpg',     x: (ART - BG_W) / 2, y: (ART - BG_H) / 2, w: BG_W, h: BG_H, z: -60 },
-  sphere: { url: 'assets/sphere.png', x: 143, y: 110, w: 339, h: 432, z: -30, drag: true },
+  sphere: { url: 'assets/sphere.png', x: 141, y: 108, w: 343, h: 463, z: -30, drag: true },
   shell:  { url: 'assets/shell.png',  x: 15,  y: 496, w: 68,  h: 62,  z: -16, drag: true, shadow: true },
   leaf:   { url: 'assets/leaf.png',   x: 117, y: 85,  w: 136, h: 105, z: -12, drag: true, shadow: true },
   stamp:  { url: 'assets/stamp.png',  x: 259, y: 215, w: 84,  h: 116, z: -10, drag: true, shadow: true },
@@ -69,6 +69,11 @@ function resize() {
   camera.left = -halfW; camera.right = halfW;
   camera.top = halfH; camera.bottom = -halfH;
   camera.updateProjectionMatrix();
+  // el título se dibuja con HTML en el mismo lugar que en la portada original:
+  // CSS necesita saber cuánto mide un pixel de portada y dónde empieza
+  const root = document.documentElement.style;
+  root.setProperty('--u', `${s}px`);
+  root.setProperty('--cover-top', `${vh / 2 - (ART / 2) * s}px`);
 }
 window.addEventListener('resize', resize);
 if (vv) vv.addEventListener('resize', resize); // barra de Safari mostrándose/ocultándose
@@ -465,7 +470,7 @@ function animate() {
   }
 
   // halo pulsante
-  glow.material.opacity = 0.55 + 0.3 * Math.sin(t * 0.4);
+  glow.material.opacity = 0.42 + 0.24 * Math.sin(t * 0.4);
   glow.scale.setScalar(1 + 0.04 * Math.sin(t * 0.33));
   glow.position.x = sph.position.x;
   glow.position.y = sph.position.y + 25;
