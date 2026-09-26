@@ -90,7 +90,6 @@ function reveal() {
   if (revealed) return;
   revealed = true;
   canvas.classList.add('ready');
-  showHint();
 }
 manager.onLoad = reveal;
 setTimeout(reveal, 5000); // por si alguna textura tarda demasiado
@@ -350,7 +349,6 @@ canvas.addEventListener('pointerdown', (e) => {
   };
   canvas.setPointerCapture(e.pointerId);
   canvas.style.cursor = 'grabbing';
-  hideHint();
 }, { passive: false });
 
 canvas.addEventListener('pointermove', (e) => {
@@ -378,25 +376,6 @@ function endDrag(e) {
 canvas.addEventListener('pointerup', endDrag);
 canvas.addEventListener('pointercancel', endDrag);
 canvas.addEventListener('contextmenu', (e) => e.preventDefault()); // long-press en iOS
-
-// ---------- pista: cómo jugar con la portada ----------
-const hint = document.getElementById('hint');
-let hintTimer = 0;
-function showHint() {
-  if (!hint) return;
-  hint.textContent = coarse
-    ? 'arrastra los objetos · doble toque para devolverlos'
-    : 'arrastra los objetos · doble clic para devolverlos';
-  hintTimer = setTimeout(() => {
-    hint.classList.add('show');
-    hintTimer = setTimeout(hideHint, 6500);
-  }, 1800);
-}
-function hideHint() {
-  if (!hint) return;
-  clearTimeout(hintTimer);
-  hint.classList.remove('show');
-}
 
 // ---------- animación ----------
 const clock = new THREE.Clock();

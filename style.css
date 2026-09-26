@@ -35,27 +35,6 @@ html, body {
 }
 #scene.ready { opacity: 1; }
 
-/* ---------- pista de interacción ---------- */
-.hint {
-  position: fixed;
-  left: 50%;
-  bottom: 64px;
-  z-index: 4;
-  transform: translate(-50%, 6px);
-  font-size: 13px;
-  font-style: italic;
-  letter-spacing: 0.06em;
-  color: rgba(233, 226, 214, 0.85);
-  background: rgba(10, 26, 34, 0.5);
-  padding: 7px 16px;
-  border-radius: 999px;
-  backdrop-filter: blur(4px);
-  white-space: nowrap;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.8s, transform 0.8s;
-}
-.hint.show { opacity: 1; transform: translate(-50%, 0); }
 
 /* ---------- título: la tipografía y el lugar exactos de la portada ---------- */
 /* TeX Gyre Adventor: clon libre de ITC Avant Garde (GUST Font License) */
@@ -319,7 +298,6 @@ button:focus-visible { outline: 2px solid #ef86b2; outline-offset: 2px; }
 
 @media (max-width: 700px) {
   .credit { display: none; }
-  .hint { bottom: 70px; font-size: 12.5px; }
 
   /* móvil: tarjeta compacta, video pequeño a la izquierda */
   .player {
@@ -342,7 +320,6 @@ button:focus-visible { outline: 2px solid #ef86b2; outline-offset: 2px; }
   /* el tracklist se sube cuando el reproductor ocupa la parte de abajo */
   body:has(.player:not([hidden])) #tracksBtn { bottom: 100px; }
   body:has(.player:not([hidden])) .tracks { bottom: 146px; }
-  body:has(.player:not([hidden])) .hint { bottom: 152px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
